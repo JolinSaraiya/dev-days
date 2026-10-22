@@ -32,6 +32,38 @@ test.describe('Game Listing and Navigation', () => {
     await expect(gameRatings.first()).toContainText(/\/ 5$/);
   });
 
+  test('should filter games by category and publisher together', async ({ page }) => {
+    await page.goto('/');
+
+    await test.step('Select a category and publisher', async () => {
+      await page.getByLabel('Strategy').check();
+      await page.getByTestId('publisher-filter').selectOption({ label: 'CodeForge Studios' });
+      await page.getByTestId('apply-filters').click();
+    });
+
+    await test.step('Verify the combined filter result and query state', async () => {
+      const visibleCards = page.locator('[data-testid="game-card"]:visible');
+      await expect(visibleCards).toHaveCount(1);
+      await expect(visibleCards.first().getByTestId('game-title')).toHaveText('DevOps Dominion');
+      await expect(page.getByTestId('filter-results-count')).toHaveText('Showing 1 game');
+      await expect(page).toHaveURL(/categories=.*&publisher=/);
+    });
+  });
+
+  test('should clear game filters and restore all results', async ({ page }) => {
+    await page.goto('/');
+    const initialCount = await page.locator('[data-testid="game-card"]:visible').count();
+
+    await page.getByLabel('Strategy').check();
+    await page.getByTestId('apply-filters').click();
+    await expect(page.getByTestId('filter-results-count')).toContainText('Showing 4 games');
+
+    await page.getByTestId('clear-filters').click();
+    await expect(page.locator('[data-testid="game-card"]:visible')).toHaveCount(initialCount);
+    await expect(page.getByTestId('filter-results-count')).toHaveText(`Showing ${initialCount} games`);
+    await expect(page).toHaveURL('/');
+  });
+
   test('should navigate to correct game details page when clicking on a game', async ({ page }) => {
     let gameId: string | null;
     let gameTitle: string | null;

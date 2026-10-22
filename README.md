@@ -64,6 +64,8 @@ npm run test:unit   # Vitest unit tests (transforms + data-access helpers)
 npm run test:e2e    # Playwright E2E tests (builds + previews the static site first)
 ```
 
+The homepage supports filtering by one or more categories and by publisher. Filters are stored in the URL (`categories` and `publisher` query parameters), so filtered catalog views can be bookmarked or shared.
+
 ## Linting
 
 The frontend uses ESLint to enforce code quality across TypeScript and Astro files. Run it with:
