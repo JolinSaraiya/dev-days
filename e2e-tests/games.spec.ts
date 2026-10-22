@@ -24,6 +24,14 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 
+  test('should display each game rating out of five on the index page', async ({ page }) => {
+    await page.goto('/');
+
+    const gameRatings = page.getByTestId('game-rating');
+    await expect(gameRatings.first()).toBeVisible();
+    await expect(gameRatings.first()).toContainText(/\/ 5$/);
+  });
+
   test('should navigate to correct game details page when clicking on a game', async ({ page }) => {
     let gameId: string | null;
     let gameTitle: string | null;
