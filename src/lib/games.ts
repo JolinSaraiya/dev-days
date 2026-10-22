@@ -1,4 +1,4 @@
-import { eq, asc } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Database } from './db';
 import { games, categories, publishers } from '../../db/schema';
 import type { Game } from '../types/game';
@@ -25,6 +25,14 @@ type GameSelectionRow = {
     publisherName: string | null;
 };
 
+/**
+ * Optional criteria used to narrow the game catalog.
+ */
+export interface GameFilters {
+    categoryIds?: readonly number[];
+    publisherId?: number;
+}
+
 function mapGame(row: GameSelectionRow): Game {
     return {
         id: row.id,
@@ -42,17 +50,35 @@ function mapGame(row: GameSelectionRow): Game {
     };
 }
 
-function baseGamesQuery(db: Database) {
+function baseGamesQuery(db: Database, filters: GameFilters = {}) {
+    const conditions = [];
+
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+        conditions.push(inArray(games.categoryId, filters.categoryIds));
+    }
+
+    if (filters.publisherId !== undefined) {
+        conditions.push(eq(games.publisherId, filters.publisherId));
+    }
+
     return db
         .select(gameSelection)
         .from(games)
         .leftJoin(categories, eq(games.categoryId, categories.id))
-        .leftJoin(publishers, eq(games.publisherId, publishers.id));
+        .leftJoin(publishers, eq(games.publisherId, publishers.id))
+        .$dynamic()
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
 }
 
 /** All games ordered by title. */
 export async function getAllGames(db: Database): Promise<Game[]> {
     const rows = await baseGamesQuery(db).orderBy(asc(games.title));
+    return rows.map(mapGame);
+}
+
+/** Games matching optional category and publisher filters, ordered by title. */
+export async function getFilteredGames(db: Database, filters: GameFilters = {}): Promise<Game[]> {
+    const rows = await baseGamesQuery(db, filters).orderBy(asc(games.title));
     return rows.map(mapGame);
 }
 
